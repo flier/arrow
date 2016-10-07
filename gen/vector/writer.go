@@ -38,7 +38,7 @@ func (w *VectorWriter) Write(out io.Writer, typ typewriter.Type) error {
 		return err
 	}
 
-	m := model{
+	m := &model{
 		Type: typ,
 	}
 
@@ -59,7 +59,7 @@ func (w *VectorWriter) Write(out io.Writer, typ typewriter.Type) error {
 			return err
 		}
 
-		m := model{
+		m := &model{
 			TagValue:      value,
 			Type:          typ,
 			TypeParameter: tp,

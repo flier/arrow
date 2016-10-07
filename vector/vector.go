@@ -1,4 +1,6 @@
-package arrow
+package vector
+
+//go:generate gen
 
 // +gen vector:""
 type TinyInt int8
