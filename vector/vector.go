@@ -1,5 +1,9 @@
 package vector
 
+import (
+	"time"
+)
+
 //go:generate gen
 
 // +gen vector:""
@@ -31,3 +35,12 @@ type Float4 float32
 
 // +gen vector:""
 type Float8 float64
+
+type Date time.Time
+type Time time.Time
+type TimeStamp int64
+type IntervalDay time.Duration
+type IntervalYear time.Duration
+type VarChar string
+type VarBinary []byte
+type Bit bool
