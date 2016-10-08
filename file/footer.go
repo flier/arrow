@@ -1,6 +1,8 @@
 package file
 
 import (
+	"fmt"
+
 	"github.com/flier/arrow/flatbuf"
 	"github.com/flier/arrow/schema"
 )
@@ -28,8 +30,14 @@ func LoadFooter(footer *flatbuf.Footer) (*Footer, error) {
 		}
 	}
 
+	schema, err := schema.NewSchema(footer.Schema(nil))
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to parse schema, %s", err)
+	}
+
 	return &Footer{
-		Schema:        schema.NewSchema(footer.Schema(nil)),
+		Schema:        schema,
 		Dictionaries:  dictionaries,
 		RecordBatches: recordBatches,
 	}, nil
