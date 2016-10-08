@@ -60,9 +60,9 @@ func (w *VectorWriter) Write(out io.Writer, typ typewriter.Type) error {
 		}
 
 		m := &model{
-			TagValue:      value,
-			Type:          typ,
-			TypeParameter: tp,
+			TagValue:  value,
+			Type:      typ,
+			TypeParam: tp,
 		}
 
 		if err := tmpl.Execute(out, m); err != nil {

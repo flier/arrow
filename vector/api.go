@@ -1,34 +1,34 @@
-package arrow
+package vector
 
 // An abstraction that is used to read from this vector instance.
-type VectorAccessor interface {
+type Accessor interface {
 	// Get the representation of the element at the specified position.
-	Get(index int) interface{}
+	Get(index int) (interface{}, error)
 
 	// Returns the number of values that is stored in this vector.
-	Len() int
+	ValueCount() int
 
 	// Returns true if the value at the given index is null, false otherwise.
 	IsNull(index int) bool
 }
 
 // An abstraction that is used to write into this vector instance.
-type VectorMutator interface {
-	// Resets the mutator to pristine state.
-	Reset()
+type Mutator interface {
+	// Sets the number of values that is stored in this vector to the given value count.
+	SetValueCount(valueCount int)
 }
 
 // An abstraction that is used to store a sequence of values in an individual column.
 type ValueVector interface {
-	// Release the underlying ArrowBuf and reset the ValueVector to empty.
-	Clear()
+	// Returns the maximum number of values that can be stored in this vector instance.
+	ValueCapacity() int
 
 	// Return a VectorAccessor that is used to read from this vector instance
-	Accessor() VectorAccessor
+	Accessor() Accessor
 
 	// Return a VectorMutator that is used to write to this vector instance
-	Mutator() VectorMutator
+	Mutator() Mutator
 
 	// Returns the number of bytes that is used by this vector instance.
-	Size() int
+	BufferSize() int
 }

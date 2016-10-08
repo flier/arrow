@@ -7,8 +7,8 @@ import (
 type model struct {
 	typewriter.TagValue
 
-	Type          typewriter.Type
-	TypeParameter typewriter.Type
+	Type      typewriter.Type
+	TypeParam typewriter.Type
 }
 
 func (m *model) Name() string {
@@ -17,4 +17,11 @@ func (m *model) Name() string {
 
 var templates = typewriter.TemplateSlice{
 	vector,
+
+	value,
+	time,
+	duration,
+
+	accessor,
+	mutator,
 }
