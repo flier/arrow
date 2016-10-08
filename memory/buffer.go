@@ -15,7 +15,14 @@ const (
 type Buffer struct {
 	*bytes.Buffer
 
-	order binary.ByteOrder
+	Order binary.ByteOrder
+}
+
+func NewBuffer(buf []byte) *Buffer {
+	return &Buffer{
+		Buffer: bytes.NewBuffer(buf),
+		Order:  binary.LittleEndian,
+	}
 }
 
 func (b *Buffer) TinyInt(index int) int8 {
@@ -39,15 +46,15 @@ func (b *Buffer) UInt1(index int) uint8 {
 }
 
 func (b *Buffer) UInt2(index int) uint16 {
-	return b.order.Uint16(b.Bytes()[index*2 : (index+1)*2])
+	return b.Order.Uint16(b.Bytes()[index*2 : (index+1)*2])
 }
 
 func (b *Buffer) UInt4(index int) uint32 {
-	return b.order.Uint32(b.Bytes()[index*4 : (index+1)*4])
+	return b.Order.Uint32(b.Bytes()[index*4 : (index+1)*4])
 }
 
 func (b *Buffer) UInt8(index int) uint64 {
-	return b.order.Uint64(b.Bytes()[index*8 : (index+1)*8])
+	return b.Order.Uint64(b.Bytes()[index*8 : (index+1)*8])
 }
 
 func (b *Buffer) Float4(index int) float32 {
@@ -112,15 +119,15 @@ func (b *Buffer) PutUInt1(index int, v uint8) {
 }
 
 func (b *Buffer) PutUInt2(index int, v uint16) {
-	b.order.PutUint16(b.Bytes()[index*2:(index+1)*2], v)
+	b.Order.PutUint16(b.Bytes()[index*2:(index+1)*2], v)
 }
 
 func (b *Buffer) PutUInt4(index int, v uint32) {
-	b.order.PutUint32(b.Bytes()[index*4:(index+1)*4], v)
+	b.Order.PutUint32(b.Bytes()[index*4:(index+1)*4], v)
 }
 
 func (b *Buffer) PutUInt8(index int, v uint64) {
-	b.order.PutUint64(b.Bytes()[index*8:(index+1)*8], v)
+	b.Order.PutUint64(b.Bytes()[index*8:(index+1)*8], v)
 }
 
 func (b *Buffer) PutFloat4(index int, v float32) {
