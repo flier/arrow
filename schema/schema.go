@@ -8,13 +8,13 @@ type Schema struct {
 	Fields []*Field
 }
 
-func NewSchema(schema *flatbuf.Schema) (*Schema, error) {
+func UnmarshalSchema(schema *flatbuf.Schema) (*Schema, error) {
 	var fields []*Field
 	var field flatbuf.Field
 
 	for i := 0; i < schema.FieldsLength(); i++ {
 		if schema.Fields(&field, i) {
-			f, err := NewField(&field)
+			f, err := UnmarshalField(&field)
 
 			if err != nil {
 				return nil, err
@@ -24,7 +24,5 @@ func NewSchema(schema *flatbuf.Schema) (*Schema, error) {
 		}
 	}
 
-	return &Schema{
-		Fields: fields,
-	}, nil
+	return &Schema{fields}, nil
 }

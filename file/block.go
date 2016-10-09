@@ -10,7 +10,7 @@ type Block struct {
 	BodyLen     int
 }
 
-func NewBlock(block *flatbuf.Block) *Block {
+func UnmarshalBlock(block *flatbuf.Block) *Block {
 	return &Block{
 		Offset:      block.Offset(),
 		MetadataLen: int(block.MetaDataLength()),

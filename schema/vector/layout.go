@@ -32,23 +32,41 @@ func (t VectorType) String() string {
 }
 
 var (
-	ValidityVector = &Layout{Validity, 1}
-	OffsetVector   = &Layout{Offset, 32}
-	TypeVector     = &Layout{Type, 32}
-	BooleanVector  = &Layout{Data, 1}
-	Value64Vector  = &Layout{Data, 64}
-	Value32Vector  = &Layout{Data, 32}
-	Value16Vector  = &Layout{Data, 16}
-	Value8Vector   = &Layout{Data, 8}
+	ValidityVector = &VectorLayout{Validity, 1}
+	OffsetVector   = &VectorLayout{Offset, 32}
+	TypeVector     = &VectorLayout{Type, 32}
+	BooleanVector  = &VectorLayout{Data, 1}
+	Value64Vector  = &VectorLayout{Data, 64}
+	Value32Vector  = &VectorLayout{Data, 32}
+	Value16Vector  = &VectorLayout{Data, 16}
+	Value8Vector   = &VectorLayout{Data, 8}
 	ByteVector     = Value8Vector
 )
 
-type Layout struct {
+type VectorLayout struct {
 	Type     VectorType
 	BitWidth int
 }
 
-func DataVector(bitWidth int) (*Layout, error) {
+func UnmarshalVectorLayout(layout *flatbuf.VectorLayout) (*VectorLayout, error) {
+	switch layout.Type() {
+	case flatbuf.VectorTypeVALIDITY:
+		return ValidityVector, nil
+	case flatbuf.VectorTypeOFFSET:
+		return OffsetVector, nil
+	case flatbuf.VectorTypeTYPE:
+		return TypeVector, nil
+	case flatbuf.VectorTypeDATA:
+		return DataVector(int(layout.BitWidth()))
+	}
+
+	return &VectorLayout{
+		Type:     VectorType(layout.Type()),
+		BitWidth: int(layout.BitWidth()),
+	}, nil
+}
+
+func DataVector(bitWidth int) (*VectorLayout, error) {
 	switch bitWidth {
 	case 8:
 		return Value8Vector, nil
@@ -61,4 +79,8 @@ func DataVector(bitWidth int) (*Layout, error) {
 	default:
 		return nil, errors.New("only 8, 16, 32, or 64 bits supported")
 	}
+}
+
+type TypeLayout struct {
+	Vectors []*VectorLayout
 }

@@ -15,20 +15,52 @@ type Field struct {
 	Nullable bool
 	Type     Type
 	Children []*Field
-	Layout   *vector.Layout
+	Layout   *vector.TypeLayout
 }
 
-func NewField(field *flatbuf.Field) (*Field, error) {
+func UnmarshalField(field *flatbuf.Field) (*Field, error) {
 	tp, err := getTypeForField(field)
 
 	if err != nil {
 		return nil, err
 	}
 
+	var layouts []*vector.VectorLayout
+	var layout flatbuf.VectorLayout
+
+	for i := 0; i < field.LayoutLength(); i++ {
+		if field.Layout(&layout, i) {
+			l, err := vector.UnmarshalVectorLayout(&layout)
+
+			if err != nil {
+				return nil, err
+			}
+
+			layouts = append(layouts, l)
+		}
+	}
+
+	var children []*Field
+	var child flatbuf.Field
+
+	for i := 0; i < field.ChildrenLength(); i++ {
+		if field.Children(&child, i) {
+			f, err := UnmarshalField(&child)
+
+			if err != nil {
+				return nil, err
+			}
+
+			children = append(children, f)
+		}
+	}
+
 	return &Field{
 		Name:     string(field.Name()),
 		Nullable: field.Nullable() != 0,
 		Type:     tp,
+		Children: children,
+		Layout:   &vector.TypeLayout{layouts},
 	}, nil
 }
 

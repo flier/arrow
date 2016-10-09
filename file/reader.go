@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/flier/arrow/flatbuf"
-	"github.com/flier/arrow/memory"
 	"github.com/flier/arrow/schema/vector"
 )
 
@@ -63,7 +62,7 @@ func (r *Reader) ReadFooter() (*Footer, error) {
 		return nil, fmt.Errorf("fail to read footer, %s", err)
 	}
 
-	if footer, err := LoadFooter(flatbuf.GetRootAsFooter(buf, 0)); err != nil {
+	if footer, err := UnmarshalFooter(flatbuf.GetRootAsFooter(buf, 0)); err != nil {
 		return nil, fmt.Errorf("fail to parse footer, %s", err)
 	} else {
 		r.footer = footer
@@ -90,30 +89,5 @@ func (r *Reader) ReadRecordBatch(block *Block) (*vector.RecordBatch, error) {
 	batch := flatbuf.GetRootAsRecordBatch(buf[:block.MetadataLen], 0)
 	body := buf[block.MetadataLen:]
 
-	var nodes []*vector.FieldNode
-	var node flatbuf.FieldNode
-
-	for i := 0; i < batch.NodesLength(); i++ {
-		if batch.Nodes(&node, i) {
-			nodes = append(nodes, &vector.FieldNode{
-				Length:    int(node.Length()),
-				NullCount: int(node.NullCount()),
-			})
-		}
-	}
-
-	var buffers []*memory.Buffer
-	var buffer flatbuf.Buffer
-
-	for i := 0; i < batch.BuffersLength(); i++ {
-		if batch.Buffers(&buffer, i) {
-			buffers = append(buffers, memory.NewBuffer(body[buffer.Offset():buffer.Offset()+buffer.Length()]))
-		}
-	}
-
-	return &vector.RecordBatch{
-		Length:  int(batch.Length()),
-		Nodes:   nodes,
-		Buffers: buffers,
-	}, nil
+	return vector.UnmarshalRecordBatch(batch, body)
 }
