@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	flatbuffers "github.com/google/flatbuffers/go"
+	fb "github.com/google/flatbuffers/go"
 
 	"github.com/flier/arrow/flatbuf"
 	"github.com/flier/arrow/schema/vector"
@@ -72,21 +72,21 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 	case flatbuf.TypeInt:
 		var i flatbuf.Int
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&i))) {
+		if field.Type((*fb.Table)(unsafe.Pointer(&i))) {
 			return NewInt(int(i.BitWidth()), i.IsSigned() != 0), nil
 		}
 
 	case flatbuf.TypeFloatingPoint:
 		var f flatbuf.FloatingPoint
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&f))) {
+		if field.Type((*fb.Table)(unsafe.Pointer(&f))) {
 			return NewFloatingPoint(Precision(f.Precision())), nil
 		}
 
 	case flatbuf.TypeDecimal:
 		var d flatbuf.Decimal
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&d))) {
+		if field.Type((*fb.Table)(unsafe.Pointer(&d))) {
 			return NewDecimal(Precision(d.Precision()), int(d.Scale())), nil
 		}
 
@@ -108,14 +108,14 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 	case flatbuf.TypeTimestamp:
 		var ts flatbuf.Timestamp
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&ts))) {
+		if field.Type((*fb.Table)(unsafe.Pointer(&ts))) {
 			return NewTimeStamp(TimeUnit(ts.Unit())), nil
 		}
 
 	case flatbuf.TypeInterval:
 		var i flatbuf.Interval
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&i))) {
+		if field.Type((*fb.Table)(unsafe.Pointer(&i))) {
 			return NewInterval(IntervalUnit(i.Unit())), nil
 		}
 
@@ -128,7 +128,7 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 	case flatbuf.TypeUnion:
 		var u flatbuf.Union
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&u))) {
+		if field.Type((*fb.Table)(unsafe.Pointer(&u))) {
 			var typeIDs []int
 
 			for i := 0; i < u.TypeIdsLength(); i++ {
@@ -143,4 +143,94 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 	}
 
 	return nil, fmt.Errorf("fail to parse type, %s", arrowType(field.TypeType()))
+}
+
+func (f *Field) Marshal(builder *fb.Builder) (fb.UOffsetT, error) {
+	var nameOffset fb.UOffsetT
+
+	if len(f.Name) > 0 {
+		nameOffset = builder.CreateString(f.Name)
+	}
+
+	typeOffset, err := f.Type.Marshal(builder)
+
+	if err != nil {
+		return 0, fmt.Errorf("fail to marshal type, %s", err)
+	}
+
+	childrenOffset, err := f.marshalChildren(builder)
+
+	if err != nil {
+		return 0, fmt.Errorf("fail to marshal children, %s", err)
+	}
+
+	layoutOffset, err := f.marshalLayout(builder)
+
+	if err != nil {
+		return 0, fmt.Errorf("fail to marshal layout, %s", err)
+	}
+
+	flatbuf.FieldStart(builder)
+
+	if len(f.Name) > 0 {
+		flatbuf.FieldAddName(builder, nameOffset)
+	}
+
+	var nullable byte
+
+	if f.Nullable {
+		nullable = 1
+	}
+
+	flatbuf.FieldAddNullable(builder, nullable)
+	flatbuf.FieldAddTypeType(builder, byte(f.Type.Value()))
+	flatbuf.FieldAddType(builder, typeOffset)
+	flatbuf.FieldAddChildren(builder, childrenOffset)
+	flatbuf.FieldAddLayout(builder, layoutOffset)
+
+	return flatbuf.FieldEnd(builder), nil
+}
+
+func (f *Field) marshalChildren(builder *fb.Builder) (fb.UOffsetT, error) {
+	var childOffsets []fb.UOffsetT
+
+	for _, child := range f.Children {
+		off, err := child.Marshal(builder)
+
+		if err != nil {
+			return 0, err
+		}
+
+		childOffsets = append(childOffsets, off)
+	}
+
+	flatbuf.FieldStartChildrenVector(builder, len(childOffsets))
+
+	for _, off := range childOffsets {
+		builder.PrependUOffsetT(off)
+	}
+
+	return builder.EndVector(len(childOffsets)), nil
+}
+
+func (f *Field) marshalLayout(builder *fb.Builder) (fb.UOffsetT, error) {
+	var bufferOffsets []fb.UOffsetT
+
+	for _, layout := range f.Layout.Vectors {
+		off, err := layout.Marshal(builder)
+
+		if err != nil {
+			return 0, err
+		}
+
+		bufferOffsets = append(bufferOffsets, off)
+	}
+
+	flatbuf.FieldStartLayoutVector(builder, len(bufferOffsets))
+
+	for _, off := range bufferOffsets {
+		builder.PrependUOffsetT(off)
+	}
+
+	return builder.EndVector(len(bufferOffsets)), nil
 }

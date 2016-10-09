@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strconv"
 
+	fb "github.com/google/flatbuffers/go"
+
 	"github.com/flier/arrow/flatbuf"
 )
 
@@ -64,6 +66,13 @@ func UnmarshalVectorLayout(layout *flatbuf.VectorLayout) (*VectorLayout, error) 
 		Type:     VectorType(layout.Type()),
 		BitWidth: int(layout.BitWidth()),
 	}, nil
+}
+
+func (l *VectorLayout) Marshal(builder *fb.Builder) (fb.UOffsetT, error) {
+	flatbuf.VectorLayoutStart(builder)
+	flatbuf.VectorLayoutAddType(builder, int16(l.Type))
+	flatbuf.VectorLayoutAddBitWidth(builder, int16(l.BitWidth))
+	return flatbuf.VectorLayoutEnd(builder), nil
 }
 
 func DataVector(bitWidth int) (*VectorLayout, error) {

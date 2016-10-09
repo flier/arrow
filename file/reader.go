@@ -10,15 +10,11 @@ import (
 	"github.com/flier/arrow/schema/vector"
 )
 
-const (
-	Magic = "ARROW1"
-)
-
 var (
-	ErrTooSmall      = errors.New("buffer too small")
-	ErrBadMagic      = errors.New("missing magic number")
-	ErrInvalidFooter = errors.New("invalid footer")
-	ErrInvalidBlock  = errors.New("invalid block")
+	errTooSmall      = errors.New("buffer too small")
+	errBadMagic      = errors.New("missing magic number")
+	errInvalidFooter = errors.New("invalid footer")
+	errInvalidBlock  = errors.New("invalid block")
 )
 
 type Reader struct {
@@ -34,7 +30,7 @@ func (r *Reader) ReadFooter() (*Footer, error) {
 	minSize := int64(len(Magic)*2 + 4)
 
 	if r.in.Size() <= minSize {
-		return nil, ErrTooSmall
+		return nil, errTooSmall
 	}
 
 	buf := make([]byte, 4+len(Magic))
@@ -45,13 +41,13 @@ func (r *Reader) ReadFooter() (*Footer, error) {
 	}
 
 	if string(buf[4:]) != Magic {
-		return nil, ErrBadMagic
+		return nil, errBadMagic
 	}
 
 	footerLength := int64(int32(binary.LittleEndian.Uint32(buf[:4])))
 
 	if footerLength <= 0 || footerLength+minSize > r.in.Size() {
-		return nil, ErrInvalidFooter
+		return nil, errInvalidFooter
 	}
 
 	off -= footerLength
@@ -74,10 +70,10 @@ func (r *Reader) ReadFooter() (*Footer, error) {
 // TODO: read dictionaries
 
 func (r *Reader) ReadRecordBatch(block *Block) (*vector.RecordBatch, error) {
-	bufSize := block.MetadataLen + block.BodyLen
+	bufSize := int64(block.MetadataLen) + block.BodyLen
 
 	if bufSize < 0 {
-		return nil, ErrInvalidBlock
+		return nil, errInvalidBlock
 	}
 
 	buf := make([]byte, bufSize)

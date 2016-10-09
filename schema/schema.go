@@ -1,6 +1,8 @@
 package schema
 
 import (
+	fb "github.com/google/flatbuffers/go"
+
 	"github.com/flier/arrow/flatbuf"
 )
 
@@ -25,4 +27,30 @@ func UnmarshalSchema(schema *flatbuf.Schema) (*Schema, error) {
 	}
 
 	return &Schema{fields}, nil
+}
+
+func (s *Schema) Marshal(builder *fb.Builder) (fb.UOffsetT, error) {
+	var offsets []fb.UOffsetT
+
+	for _, field := range s.Fields {
+		off, err := field.Marshal(builder)
+
+		if err != nil {
+			return off, err
+		}
+
+		offsets = append(offsets, off)
+	}
+
+	flatbuf.SchemaStartFieldsVector(builder, len(offsets))
+
+	for _, off := range offsets {
+		builder.PrependUOffsetT(off)
+	}
+
+	fieldsOffset := builder.EndVector(len(offsets))
+
+	flatbuf.SchemaStart(builder)
+	flatbuf.SchemaAddFields(builder, fieldsOffset)
+	return flatbuf.SchemaEnd(builder), nil
 }

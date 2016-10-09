@@ -3,8 +3,14 @@ package file
 import (
 	"fmt"
 
+	fb "github.com/google/flatbuffers/go"
+
 	"github.com/flier/arrow/flatbuf"
 	"github.com/flier/arrow/schema"
+)
+
+const (
+	Magic = "ARROW1"
 )
 
 type Footer struct {
@@ -41,4 +47,42 @@ func UnmarshalFooter(footer *flatbuf.Footer) (*Footer, error) {
 		Dictionaries:  dictionaries,
 		RecordBatches: recordBatches,
 	}, nil
+}
+
+func (f *Footer) Marshal(builder *fb.Builder) (fb.UOffsetT, error) {
+	schemaOffset, err := f.Schema.Marshal(builder)
+
+	if err != nil {
+		return 0, fmt.Errorf("fail to marshal schema, %s", err)
+	}
+
+	flatbuf.FooterStartDictionariesVector(builder, len(f.Dictionaries))
+	dicsOffset, err := f.marshalBlocks(builder, f.Dictionaries)
+
+	if err != nil {
+		return 0, fmt.Errorf("fail to marshal dictionaries, %s", err)
+	}
+
+	flatbuf.FooterStartRecordBatchesVector(builder, len(f.RecordBatches))
+	rbsOffset, err := f.marshalBlocks(builder, f.RecordBatches)
+
+	if err != nil {
+		return 0, fmt.Errorf("fail to marshal recordBatches, %s", err)
+	}
+
+	flatbuf.FooterStart(builder)
+	flatbuf.FooterAddSchema(builder, schemaOffset)
+	flatbuf.FooterAddDictionaries(builder, dicsOffset)
+	flatbuf.FooterAddRecordBatches(builder, rbsOffset)
+	return flatbuf.FooterEnd(builder), nil
+}
+
+func (f *Footer) marshalBlocks(builder *fb.Builder, blocks []*Block) (fb.UOffsetT, error) {
+	for _, block := range blocks {
+		if _, err := block.Marshal(builder); err != nil {
+			return 0, err
+		}
+	}
+
+	return builder.EndVector(len(blocks)), nil
 }
