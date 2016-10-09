@@ -7,7 +7,7 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 
 	"github.com/flier/arrow/flatbuf"
-	"github.com/flier/arrow/memory"
+	"github.com/flier/arrow/schema/vector"
 )
 
 type Schema struct {
@@ -40,7 +40,7 @@ type Field struct {
 	Nullable bool
 	Type     Type
 	Children []*Field
-	Layout   *VectorLayout
+	Layout   *vector.Layout
 }
 
 func NewField(field *flatbuf.Field) (*Field, error) {
@@ -136,15 +136,4 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 	}
 
 	return nil, fmt.Errorf("fail to parse type, %s", arrowType(field.TypeType()))
-}
-
-type FieldNode struct {
-	Length    int
-	NullCount int
-}
-
-type RecordBatch struct {
-	Length  int
-	Nodes   []*FieldNode
-	Buffers []*memory.Buffer
 }

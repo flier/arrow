@@ -8,7 +8,7 @@ import (
 
 	"github.com/flier/arrow/flatbuf"
 	"github.com/flier/arrow/memory"
-	"github.com/flier/arrow/schema"
+	"github.com/flier/arrow/schema/vector"
 )
 
 const (
@@ -74,7 +74,7 @@ func (r *Reader) ReadFooter() (*Footer, error) {
 
 // TODO: read dictionaries
 
-func (r *Reader) ReadRecordBatch(block *Block) (*schema.RecordBatch, error) {
+func (r *Reader) ReadRecordBatch(block *Block) (*vector.RecordBatch, error) {
 	bufSize := block.MetadataLen + block.BodyLen
 
 	if bufSize < 0 {
@@ -90,12 +90,12 @@ func (r *Reader) ReadRecordBatch(block *Block) (*schema.RecordBatch, error) {
 	batch := flatbuf.GetRootAsRecordBatch(buf[:block.MetadataLen], 0)
 	body := buf[block.MetadataLen:]
 
-	var nodes []*schema.FieldNode
+	var nodes []*vector.FieldNode
 	var node flatbuf.FieldNode
 
 	for i := 0; i < batch.NodesLength(); i++ {
 		if batch.Nodes(&node, i) {
-			nodes = append(nodes, &schema.FieldNode{
+			nodes = append(nodes, &vector.FieldNode{
 				Length:    int(node.Length()),
 				NullCount: int(node.NullCount()),
 			})
@@ -111,7 +111,7 @@ func (r *Reader) ReadRecordBatch(block *Block) (*schema.RecordBatch, error) {
 		}
 	}
 
-	return &schema.RecordBatch{
+	return &vector.RecordBatch{
 		Length:  int(batch.Length()),
 		Nodes:   nodes,
 		Buffers: buffers,
