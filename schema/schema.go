@@ -63,23 +63,35 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 		return Null, nil
 
 	case flatbuf.TypeInt:
-		return Struct, nil
+		var i flatbuf.Int
+
+		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&i))) {
+			return NewInt(int(i.BitWidth()), i.IsSigned() != 0), nil
+		}
 
 	case flatbuf.TypeFloatingPoint:
-		var fp flatbuf.FloatingPoint
+		var f flatbuf.FloatingPoint
 
-		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&fp))) {
-			return NewFloatingPoint(int(fp.Precision())), nil
+		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&f))) {
+			return NewFloatingPoint(Precision(f.Precision())), nil
+		}
+
+	case flatbuf.TypeDecimal:
+		var d flatbuf.Decimal
+
+		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&d))) {
+			return NewDecimal(Precision(d.Precision()), int(d.Scale())), nil
 		}
 
 	case flatbuf.TypeBinary:
+		return Binary, nil
+
 	case flatbuf.TypeUtf8:
 		return Utf8, nil
 
 	case flatbuf.TypeBool:
 		return Bool, nil
 
-	case flatbuf.TypeDecimal:
 	case flatbuf.TypeDate:
 		return Date, nil
 
@@ -87,7 +99,19 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 		return Time, nil
 
 	case flatbuf.TypeTimestamp:
+		var ts flatbuf.Timestamp
+
+		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&ts))) {
+			return NewTimeStamp(TimeUnit(ts.Unit())), nil
+		}
+
 	case flatbuf.TypeInterval:
+		var i flatbuf.Interval
+
+		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&i))) {
+			return NewInterval(IntervalUnit(i.Unit())), nil
+		}
+
 	case flatbuf.TypeList:
 		return List, nil
 
@@ -95,11 +119,23 @@ func getTypeForField(field *flatbuf.Field) (Type, error) {
 		return Struct, nil
 
 	case flatbuf.TypeUnion:
+		var u flatbuf.Union
+
+		if field.Type((*flatbuffers.Table)(unsafe.Pointer(&u))) {
+			var typeIDs []int
+
+			for i := 0; i < u.TypeIdsLength(); i++ {
+				typeIDs = append(typeIDs, int(u.TypeIds(i)))
+			}
+
+			return NewUnion(UnionMode(u.Mode()), typeIDs), nil
+		}
+
 	default:
-		return nil, fmt.Errorf("unsupported type, %d", field.TypeType())
+		return nil, fmt.Errorf("unsupported type, %s", arrowType(field.TypeType()))
 	}
 
-	return nil, fmt.Errorf("fail to parse type, %d", field.TypeType())
+	return nil, fmt.Errorf("fail to parse type, %s", arrowType(field.TypeType()))
 }
 
 type FieldNode struct {
